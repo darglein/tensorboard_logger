@@ -163,6 +163,7 @@ int TensorBoardLogger::add_audio(const string &tag, int step,
 
 int TensorBoardLogger::add_text(const string &tag, int step, const char *text) {
     auto *plugin_data = new SummaryMetadata::PluginData();
+    const std::string kTextPluginName = "text";
     plugin_data->set_plugin_name(kTextPluginName);
 
     auto *meta = new SummaryMetadata();
@@ -189,10 +190,13 @@ int TensorBoardLogger::add_embedding(const std::string &tensor_name,
                                      const std::vector<uint32_t> &tensor_shape,
                                      int step) {
     auto *plugin_data = new SummaryMetadata::PluginData();
+
+    const std::string kProjectorPluginName = "projector";
     plugin_data->set_plugin_name(kProjectorPluginName);
     auto *meta = new SummaryMetadata();
     meta->set_allocated_plugin_data(plugin_data);
 
+        const std::string kProjectorConfigFile = "projector_config.pbtxt";
     const auto &filename = log_dir_ + kProjectorConfigFile;
     auto *conf = new ProjectorConfig();
 

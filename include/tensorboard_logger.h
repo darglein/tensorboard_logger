@@ -19,9 +19,6 @@ using tensorflow::Summary;
 std::string get_parent_dir(const std::string &path);
 std::string get_basename(const std::string &path);
 
-const std::string kProjectorConfigFile = "projector_config.pbtxt";
-const std::string kProjectorPluginName = "projector";
-const std::string kTextPluginName = "text";
 
 
 struct TensorBoardLoggerOptions
