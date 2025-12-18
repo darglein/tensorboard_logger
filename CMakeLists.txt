@@ -53,6 +53,7 @@ add_library(tensorboard_logger
         "src/crc.cc"
         "src/tensorboard_logger.cc"
         ${PROTO_SRCS}
+        ${PROTO_HDRS}
 )
 
 target_compile_features(tensorboard_logger PRIVATE cxx_std_11)

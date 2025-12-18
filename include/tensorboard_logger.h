@@ -9,12 +9,34 @@
 #include <thread>
 #include <mutex>
 
-#include "crc.h"
-#include "event.pb.h"
+#if defined _WIN32 || defined __CYGWIN__
+#    define TB_HELPER_DLL_IMPORT __declspec(dllimport)
+#    define TB_HELPER_DLL_EXPORT __declspec(dllexport)
+#    define TB_HELPER_DLL_LOCAL
+#else
+#    if __GNUC__ >= 4  // Note: Clang also defines GNUC
+#        define TB_HELPER_DLL_IMPORT __attribute__((visibility("default")))
+#        define TB_HELPER_DLL_EXPORT __attribute__((visibility("default")))
+#        define TB_HELPER_DLL_LOCAL __attribute__((visibility("hidden")))
+#    else
+#        error Unknown import/export defines.
+#        define TB_HELPER_DLL_IMPORT
+#        define TB_HELPER_DLL_EXPORT
+#        define TB_HELPER_DLL_LOCAL
+#    endif
+#endif
 
-using tensorflow::Event;
-using tensorflow::Summary;
 
+#if defined(tensorboard_logger_EXPORTS)
+#    define TB_API TB_HELPER_DLL_EXPORT
+#else
+#    define TB_API TB_HELPER_DLL_IMPORT
+#endif
+
+namespace tensorflow {
+class Event;
+class Summary;
+}
 // extract parent dir or basename from path by finding the last slash
 std::string get_parent_dir(const std::string &path);
 std::string get_basename(const std::string &path);
@@ -45,7 +67,7 @@ struct TensorBoardLoggerOptions
     }
 };
 
-class TensorBoardLogger {
+class TB_API TensorBoardLogger {
    public:
     
     explicit TensorBoardLogger(const std::string &log_file,
@@ -87,52 +109,9 @@ class TensorBoardLogger {
     int add_scalar(const std::string &tag, int step, float value);
 
     // https://github.com/dmlc/tensorboard/blob/master/python/tensorboard/summary.py#L127
-    template <typename T>
-    int add_histogram(const std::string &tag, int step, const T *value,
-                      size_t num) {
-        if (bucket_limits_ == nullptr) {
-            generate_default_buckets();
-        }
-
-        std::vector<int> counts(bucket_limits_->size(), 0);
-        double min = std::numeric_limits<double>::max();
-        double max = std::numeric_limits<double>::lowest();
-        double sum = 0.0;
-        double sum_squares = 0.0;
-        for (size_t i = 0; i < num; ++i) {
-            T v = value[i];
-            auto lb = std::lower_bound(bucket_limits_->begin(),
-                                       bucket_limits_->end(), v);
-            counts[lb - bucket_limits_->begin()]++;
-            sum += v;
-            sum_squares += v * v;
-            if (v > max) {
-                max = v;
-            } else if (v < min) {
-                min = v;
-            }
-        }
-
-        auto *histo = new tensorflow::HistogramProto();
-        histo->set_min(min);
-        histo->set_max(max);
-        histo->set_num(num);
-        histo->set_sum(sum);
-        histo->set_sum_squares(sum_squares);
-        for (size_t i = 0; i < counts.size(); ++i) {
-            if (counts[i] > 0) {
-                histo->add_bucket_limit((*bucket_limits_)[i]);
-                histo->add_bucket(counts[i]);
-            }
-        }
-
-        auto *summary = new tensorflow::Summary();
-        auto *v = summary->add_value();
-        v->set_tag(tag);
-        v->set_allocated_histo(histo);
-
-        return add_event(step, summary);
-    };
+    int add_histogram(const std::string &tag, int step, const double *value,
+                      size_t num);
+    ;
 
     template <typename T>
     int add_histogram(const std::string &tag, int step,
@@ -187,8 +166,8 @@ class TensorBoardLogger {
 
    private:
     int generate_default_buckets();
-    int add_event(int64_t step, Summary *summary);
-    int write(Event &event);
+    int add_event(int64_t step, tensorflow::Summary *summary);
+    int write(tensorflow::Event &event);
     void flusher();
 
     std::string log_dir_;
