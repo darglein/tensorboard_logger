@@ -26,11 +26,14 @@
 #    endif
 #endif
 
-
+#ifdef tensorboard_logger_BUILD_SHARED
 #if defined(tensorboard_logger_EXPORTS)
 #    define TB_API TB_HELPER_DLL_EXPORT
 #else
 #    define TB_API TB_HELPER_DLL_IMPORT
+#endif
+#else
+#    define TB_API
 #endif
 
 namespace tensorflow {
